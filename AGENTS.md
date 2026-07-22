@@ -56,6 +56,10 @@ need to conform to these guidelines.
   "universal-ish". There is no exclusion for debug overflow, out-of-bounds
   indexing, poisoned-lock unwraps, etc.
 
+  Helper functions used by tests should have the same panic documentation as
+  anything else, but tests themselves (even those which `#[should_panic]`)
+  should not have `# Panics` sections.
+
 - In Rust, for functions that return a `Result`, keep any discussion of error
   conditions specific to the behavior of _that_ method; general discussion of
   the semantics of the error type belongs on the type's documentation and
