@@ -1,6 +1,6 @@
 ---
 name: logging-in-rust
-description: How to craft log messages and tracing events when working in Rust.
+description: How to craft log messages and tracing events when working in Rust. Use when writing or reviewing Rust code that generates log messages. Not applicable for work on log-handling infrastructure which processes log messages but does not produce any of its own.
 ---
 
 # Logging in Rust
