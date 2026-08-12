@@ -15,6 +15,11 @@ need to conform to these guidelines.
   lint never covers regardless of visibility, such as `impl` blocks. In
   languages other than Rust, follow the spirit of this guideline.
 
+  Pay attention to existing codebase conventions here! Most Rust codebases do
+  not document private items. If you find that private items are *inconsistently*
+  documented, then document whatever you touch. If they are *never* documented,
+  stick to that.
+
 - In Rust, unsafe functions and unsafe traits must have a `# Safety` section in
   their doc comment.
 
@@ -68,7 +73,10 @@ need to conform to these guidelines.
   fold the error discussion into the main body of the function documentation.
 
 - Doc strings on unit tests should affirmatively state the property asserted by
-  that test. Omit "verifies that" and other such modalities.
+  that test. Omit "verifies that" and other such modalities. Again, pay attention
+  to existing codebase conventions here. If there are many existing tests and
+  none of them have doc comments, or if existing doc comments on tests follow
+  a different style, then stick to that.
 
 - There is almost never an excuse for lazy doc comments which merely restate what
   is already stated by the name of the function or type.
@@ -186,7 +194,13 @@ need to conform to these guidelines.
   filesystem, create sockets (even loopback sockets), etc. If they mutate global
   state within the process, ensure that they do so in a threadsafe way that
   would be correct even if the test runs in parallel with other tests or other
-  instances of itself.
+  instances of itself. Spawning threads from unit tests is okay, but only if
+  the test joins on all its created threads before completing.
+
+  This is another place to look out carefully for existing codebase conventions.
+  If the codebase already has impure unit tests and it has no integration tests
+  at all, then you can presumably add more impure unit tests, and should not
+  introduce integration tests just to avoid doing so.
 
 - In Rust, tested rustdoc examples must follow the same purity rules as unit
   tests. If there is tension between purity and writing a good example, the
