@@ -1,0 +1,3 @@
+interface:
+  display_name: "Logging in Rust"
+  short_description: "Write and review useful Rust logging events"

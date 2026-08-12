@@ -1,5 +1,5 @@
 ---
-name: "documentation-quality"
+name: "api-documentation-quality"
 description: "Use this skill when writing or reviewing API documentation for functions, methods, subroutines, types, tests, or equivalent program elements."
 ---
 
