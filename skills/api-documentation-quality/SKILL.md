@@ -37,6 +37,16 @@ More-specific project instructions override more-general conventions. A strong l
 
 Do not mechanically propagate an obvious documentation omission when explicit project instructions establish a different rule.
 
+This classification governs API-documentation coverage and form, not whether behavior can be intentional. In a project whose prose documentation
+is not exhaustive, the absence of an API comment does not by itself prove that behavior is intended to vary. Conversely, implementation behavior
+or an isolated test does not by itself create a public guarantee.
+
+Do not impose a documentation-as-contract practice by broadening a scoped contribution into a documentation audit. A narrowly necessary
+maintainer-facing record of a supported private invariant is not documentation added solely for completeness. When formal private documentation
+would conflict with local practice, use the least anomalous durable form, such as a meaningful name, assertion, ordinary source comment, or
+project-conventional test proposition. Add or revise such a record only when the task authorizes changing that source. Do not treat it as a reason
+to document neighboring items or as a public API promise.
+
 ## Core rules
 
 ### Add information beyond the declaration itself
@@ -61,9 +71,14 @@ For a truly trivial item, such as a field accessor, a small amount of apparent r
 
 ### Document only supported semantics
 
-Every behavioral or semantic claim must be supported by the code, an established invariant, or existing project documentation.
+Every behavioral or semantic claim must be supported by explicit task or maintainer intent, declarations and types, inherited contracts,
+established invariants, existing project documentation, or other independent evidence of preservation intent. Use implementation code to verify
+that the claim is accurate, not by itself to promote current behavior into a promise.
 
 Do not invent meaning, rationale, guarantees, or invariants merely to make a comment more informative.
+
+Require evidence directed at the relevant audience. A private maintenance commitment does not become a public guarantee without caller-facing
+preservation intent.
 
 When the available evidence supports only a modest statement, write the modest statement.
 
@@ -86,7 +101,7 @@ Document exactly the observable behavior that callers are intended to rely on.
 
 Do not specify incidental behavior merely because it can currently be observed.
 
-Assume ordinary omissions are intentional unless there is evidence that the omitted detail belongs to the contract. For example, exact wording, formatting, or presentation of human-readable messages is normally not contractual.
+Treat ordinary omissions from public documentation as non-promises unless there is evidence that the omitted detail belongs to the public contract. For example, exact wording, formatting, or presentation of human-readable messages is normally not contractual.
 
 Do not request additional specification merely because more detail could be written.
 
@@ -190,6 +205,8 @@ The test's name already communicates that it is a test; the documentation should
 
 Do not add a separate doc comment when the test framework already requires or conventionally uses a human-readable proposition as part of the test declaration. In such frameworks, that proposition serves the same purpose and additional documentation would normally be redundant.
 
+When a project conventionally uses tests as executable specifications, a precise test declaration or comment may also be the maintainer-facing record of a supported private proposition. It cannot bootstrap its own authority, and it does not make the proposition part of the public API contract.
+
 For example, Ruby's RSpec commonly expresses tests as:
 
 
@@ -206,7 +223,7 @@ Here, the string passed to it already states the property being asserted, so a d
 When writing or revising documentation:
 
 1. Resolve the applicable codebase convention before deciding which items require documentation.
-2. Read the item's declaration, implementation, relevant invariants, and existing public contract.
+2. Read the item's declaration, implementation, relevant invariants, and existing contract at its visibility boundary.
 3. Identify the behavior, meaning, constraints, effects, and guarantees that callers are intended to rely on.
 4. Remove information already adequately communicated by the declaration or name.
 5. Remove claims that are merely incidental behavior.
@@ -231,9 +248,9 @@ Then report a finding when documentation:
 * fails an applicable project or language-specific documentation requirement;
 * merely restates the item's name or declaration without adding useful context;
 * exposes non-observable implementation details outside the allowed exceptions;
-* invents semantics, rationale, guarantees, or invariants unsupported by the code or project documentation;
+* invents semantics, rationale, guarantees, or invariants unsupported by evidence of intended preservation;
 * promises incidental behavior that is not intended to be contractual;
-* omits behavior that is clearly necessary to express the intended public contract;
+* omits behavior that is clearly necessary to express the intended contract at the item's visibility boundary;
 * explicitly announces underspecification that should instead be expressed through silence;
 * inconsistently mixes direct behavioral guarantees with claims about a dependency's behavior;
 * delegates a required contract section to the behavior or requirements of an implementation dependency;

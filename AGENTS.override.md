@@ -9,3 +9,7 @@ The absence of `interface.default_prompt` from a skill's `agents/openai.yaml`
 is not a bug. Before adding it to a new skill, consider whether explicitly
 invoking the skill would be useful or merely confusing. Omit `default_prompt`
 when explicit invocation does not make sense.
+
+`skills/test-quality/SKILL.md` is known to be somewhat longer than the general
+500-line guideline. Do not flag its length or shorten it solely to meet that
+guideline as long as it remains under 600 lines.

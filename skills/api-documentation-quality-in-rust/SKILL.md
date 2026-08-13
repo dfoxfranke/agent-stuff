@@ -22,11 +22,20 @@ Use these rules after resolving the local convention:
 * If private-item documentation is mixed or inconsistent, document applicable items you add or modify.
 * If there is no useful precedent and no more-specific project instruction, default to documenting applicable private items.
 
+These rules govern Rust doc comments and generated documentation coverage, not every maintainer-facing source annotation. When a project
+consistently omits private rustdoc, a narrowly necessary ordinary `//` comment or other non-rustdoc record may still preserve a supported private
+invariant for an in-scope change. Use the least anomalous local form; do not convert it to `///`, treat it as a public guarantee, or use it as
+precedent to document peer items.
+
 When the resolved convention calls for documenting private items, use the `missing_docs` lint as the boundary for which kinds of items need doc comments:
 
 > If `missing_docs` would require documentation for the item if it were public, give the item a doc comment even when it is private.
 
 Do not add doc comments solely because of this rule to kinds of items that `missing_docs` does not cover regardless of visibility, such as `impl` blocks.
+
+The convention resolved here also controls whether the `# Safety`, `# Panics`, and `# Errors` requirements below require rustdoc on a private
+item. Apply every applicable section whenever the item is documented; require documentation on an otherwise undocumented private item only when
+explicit repository policy, enforced tooling, or the resolved convention calls for it. Public items remain subject to every applicable section.
 
 ## `# Safety`
 
