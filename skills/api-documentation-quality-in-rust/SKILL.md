@@ -50,7 +50,7 @@ Use terminology from another documented abstraction when that terminology is its
 
 ## `# Panics`
 
-A function or method must have a `# Panics` section when a caller permitted to invoke the item can trigger a panic without violating the item's documented safety requirements.
+A function or method must have a `# Panics` section when a caller permitted to invoke the item can trigger a panic without violating the item's documented safety requirements. Also document an unavoidable third-party panic permitted by the Rust error-handling skill, even when the caller does not control its triggering condition.
 
 Evaluate panic behavior using the procedure below.
 
@@ -104,9 +104,32 @@ Do not document the panic if:
 * every operation available to the caller preserves that invariant; and
 * the assertion can fail only because the invariant-maintaining implementation is buggy.
 
-If no other caller-triggerable panic condition exists, omit `# Panics`.
+If no other panic condition requiring documentation under this section exists, omit `# Panics`.
 
-### 4. Do not attribute propagated panics to caller-supplied code
+### 4. Preserve trait panic contracts
+
+A trait implementation must not introduce a panic condition that the trait's documented contract does not permit. This rule concerns behavior reachable while the implementation and its dependencies satisfy their contracts; it does not turn failures of private invariants into documented panic conditions. Adding documentation only to the implementation does not ordinarily repair that contract violation.
+
+If the codebase controls the trait, either add the intended panic condition to the trait's contract or make the implementation non-panicking.
+
+For a third-party trait, follow the exception in the Rust error-handling skill when clear evidence establishes that the defining crate does not attempt to document all such panics. When that exception applies, add a `# Panics` section to the implementation and identify the affected method when the condition does not apply to every method. This documentation is required even though implementation blocks do not otherwise need doc comments merely for completeness.
+
+### 5. Document unavoidable third-party panics as possibilities
+
+When the Rust error-handling skill permits an unavoidable panic originating in third-party code, document the condition at the current API boundary using `may panic`. That language is sufficient to avoid guaranteeing that the panic will occur; do not add a longer disclaimer.
+
+For example:
+
+> # Panics
+>
+> May panic if the platform cannot provide the current system time.
+
+This does not prohibit a concise note about concrete intended API evolution. For example, if a function already returns Result but may also panic for a condition better
+reported as an error, its documentation may note an intention to report that condition as an error in a future version.
+
+Describe the caller-visible condition rather than saying that the item may panic if a named dependency panics. This remains dependency Model A even when the rest of the documentation uses Model B.
+
+### 6. Do not attribute propagated panics to caller-supplied code
 
 Do not document a panic merely because caller-supplied code may itself panic.
 
@@ -120,7 +143,7 @@ However, caller-supplied code can produce a value, state change, or other effect
 
 Describe the function's own condition rather than saying that some dependency or callback panics.
 
-### 5. Distinguish panics from aborts
+### 7. Distinguish panics from aborts
 
 Do not document process aborts as panics.
 
@@ -135,13 +158,26 @@ Examples can include:
 * unwrapping a poisoned lock; and
 * other genuine panic paths.
 
-The relevant question is whether a permitted caller can trigger the panic, not whether the panic mechanism feels sufficiently unusual to mention.
+Outside the unavoidable-third-party exception, the relevant question is whether a permitted caller can trigger the panic, not whether the panic mechanism feels sufficiently unusual to mention.
 
-### 6. Apply the rule to helpers, not test bodies
+### 8. Apply the rule to helpers, not test bodies
 
 Test helper functions follow the same panic-documentation rules as other functions.
 
 Do not add `# Panics` sections to test functions themselves, including tests annotated with `#[should_panic]`.
+
+### Reviewer checks
+
+Report a finding when:
+
+* a trait implementation introduces a panic, reachable while it and its dependencies satisfy their contracts, that its trait contract does not permit and the third-party exception does not apply;
+* incomplete third-party panic documentation is inferred from silence or isolated omissions rather than established by the evidence required by the error-handling skill;
+* an accepted trait exception lacks implementation-level `# Panics` documentation;
+* an accepted third-party panic is undocumented at an affected API boundary;
+* documentation promises that an accepted third-party panic will occur instead of saying it may occur; or
+* documentation delegates the condition to a dependency instead of describing it at the current API boundary.
+
+Do not report a correctly documented panic merely because it relies on the established third-party exception.
 
 ## `# Errors`
 
