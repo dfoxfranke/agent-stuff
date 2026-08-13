@@ -7,30 +7,6 @@ established and consistent conventions observed by existing code. Code that is
 generated, vendored, mechanically translated, or explicitly throwaway does not
 need to conform to these guidelines.
 
-## Comments
-
-- Comments other than doc comments should be fairly infrequent, but good places
-  for them include:
-
-  - Explaining code that executes an inherently complex and
-    difficult-to-understand algorithm, for which even the clearest
-    implementation cannot stand without exposition. Include citations to
-    academic literature, when applicable.
-
-  - Documenting a workaround for a bug in third-party code. Tag these with
-    `WORKAROUND:` and include a citation to the bug ticket.
-
-  - `TODO:` and `FIXME:` comments for code that is incomplete or has known issues.
-    The comment should identify what, if anything, is blocking it from being
-    completed or fixed immediately. However, if there is no blocker and the code
-    is incomplete because you were explicitly instructed to leave it that way
-    (e.g. while stubbing out a draft API design), do not mention this in the
-    comment. Just leave "what's blocking this?" unaddressed in such instances.
-
-  - Comments on `unsafe` blocks and `unsafe` impls in Rust. Always include a
-    `SAFETY:` comment above every `unsafe` block and `unsafe` impl, stating the
-    invariants that the enclosed code relies upon for its soundness.
-
 ## Naming things
 
 - Names of predicates (pure functions with boolean return values) should
@@ -113,4 +89,3 @@ need to conform to these guidelines.
   may interrupt work over it unless you were explicitly told to work without
   interruption; in that case, make do, but raise the issue in your completion
   summary.
-
