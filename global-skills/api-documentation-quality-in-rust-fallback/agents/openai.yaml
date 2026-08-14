@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rust API Documentation Profile (Fallback)"
+  short_description: "Fallback: Apply Rust-specific API documentation rules"

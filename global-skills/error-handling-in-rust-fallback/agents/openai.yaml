@@ -1,0 +1,3 @@
+interface:
+  display_name: "Error Handling in Rust (Fallback)"
+  short_description: "Fallback: Design and review robust Rust error handling"

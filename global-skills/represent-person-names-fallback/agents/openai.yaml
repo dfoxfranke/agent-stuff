@@ -1,0 +1,3 @@
+interface:
+  display_name: "Represent Person Names (Fallback)"
+  short_description: "Fallback: Represent personal names faithfully in documentation"

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Math in Code Comments (Fallback)"
+  short_description: "Fallback: Format formulas clearly in source comments"

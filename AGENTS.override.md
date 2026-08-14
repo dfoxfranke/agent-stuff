@@ -10,6 +10,8 @@ is not a bug. Before adding it to a new skill, consider whether explicitly
 invoking the skill would be useful or merely confusing. Omit `default_prompt`
 when explicit invocation does not make sense.
 
-`skills/test-quality/SKILL.md` is known to be somewhat longer than the general
-500-line guideline. Do not flag its length or shorten it solely to meet that
-guideline as long as it remains under 600 lines.
+The test-quality skills at
+`global-skills/test-quality-fallback/SKILL.md` and
+`repo-skills/test-quality/SKILL.md` are known to be somewhat longer than the
+general 500-line guideline. Do not flag their length or shorten them solely to
+meet that guideline as long as they remain under 600 lines.
