@@ -1,0 +1,3 @@
+interface:
+  display_name: "Naming Things (Fallback)"
+  short_description: "Fallback: Choose clear names that fit local conventions"
