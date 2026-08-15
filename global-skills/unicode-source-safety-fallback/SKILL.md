@@ -15,8 +15,6 @@ description: >-
 
 # Unicode source safety
 
-## Select the primary skill first
-
 If `$unicode-source-safety` is available, stop using this fallback and use that
 skill instead. Never apply both `$unicode-source-safety` and
 `$unicode-source-safety-fallback` to the same task.

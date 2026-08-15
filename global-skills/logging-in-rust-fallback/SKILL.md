@@ -12,8 +12,6 @@ description: >-
 
 # Logging in Rust
 
-## Select the primary skill first
-
 If `$logging-in-rust` is available, stop using this fallback and use that skill
 instead. Never apply both `$logging-in-rust` and `$logging-in-rust-fallback` to
 the same task.

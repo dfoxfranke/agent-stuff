@@ -10,8 +10,6 @@ description: >-
 
 # Rust documentation profile
 
-## Select the primary skill first
-
 If `$api-documentation-quality-in-rust` is available, stop using this fallback
 and use that skill instead. Never apply both
 `$api-documentation-quality-in-rust` and

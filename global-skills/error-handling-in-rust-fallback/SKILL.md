@@ -11,8 +11,6 @@ description: >-
 
 # Error handling in Rust
 
-## Select the primary skill first
-
 If `$error-handling-in-rust` is available, stop using this fallback and use that
 skill instead. Never apply both `$error-handling-in-rust` and
 `$error-handling-in-rust-fallback` to the same task.

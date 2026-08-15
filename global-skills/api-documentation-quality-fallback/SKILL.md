@@ -9,8 +9,6 @@ description: >-
 
 # Documentation quality
 
-## Select the primary skill first
-
 If `$api-documentation-quality` is available, stop using this fallback and use
 that skill instead. Never apply both `$api-documentation-quality` and
 `$api-documentation-quality-fallback` to the same task.

@@ -14,8 +14,6 @@ description: >-
 
 # Document code caveats
 
-## Select the primary skill first
-
 If `$document-code-caveats` is available, stop using this fallback and use that
 skill instead. Never apply both `$document-code-caveats` and
 `$document-code-caveats-fallback` to the same task.

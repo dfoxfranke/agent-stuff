@@ -11,8 +11,6 @@ description: >-
 
 # Test quality
 
-## Select the primary skill first
-
 If `$test-quality` is available, stop using this fallback and use that skill
 instead. Never apply both `$test-quality` and `$test-quality-fallback` to the
 same task.

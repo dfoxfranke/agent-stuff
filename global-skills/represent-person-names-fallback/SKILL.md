@@ -12,8 +12,6 @@ description: >-
 
 # Represent person names
 
-## Select the primary skill first
-
 If `$represent-person-names` is available, stop using this fallback and use that
 skill instead. Never apply both `$represent-person-names` and
 `$represent-person-names-fallback` to the same task.

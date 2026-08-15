@@ -12,8 +12,6 @@ description: >-
 
 # Math in code comments
 
-## Select the primary skill first
-
 If `$math-in-code-comments` is available, stop using this fallback and use that
 skill instead. Never apply both `$math-in-code-comments` and
 `$math-in-code-comments-fallback` to the same task.

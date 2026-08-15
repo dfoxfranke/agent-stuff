@@ -12,8 +12,6 @@ description: >-
 
 # Unsafe code in Rust
 
-## Select the primary skill first
-
 If `$unsafe-code-in-rust` is available, stop using this fallback and use that
 skill instead. Never apply both `$unsafe-code-in-rust` and
 `$unsafe-code-in-rust-fallback` to the same task.

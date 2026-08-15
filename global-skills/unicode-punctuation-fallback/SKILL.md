@@ -12,8 +12,6 @@ description: >-
 
 # Unicode punctuation
 
-## Select the primary skill first
-
 If `$unicode-punctuation` is available, stop using this fallback and use that
 skill instead. Never apply both `$unicode-punctuation` and
 `$unicode-punctuation-fallback` to the same task.
