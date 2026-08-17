@@ -16,8 +16,8 @@ skill instead. Never apply both `$error-handling-in-rust` and
 `$error-handling-in-rust-fallback` to the same task.
 
 The goal is to make invalid states difficult to construct, represent recoverable
-failures in forms callers can use, and reserve panics for bugs without losing or
-duplicating diagnostic information.
+failures in forms callers can use, and reserve panics for whole-program bugs
+without losing or duplicating diagnostic information.
 
 ## Resolve the codebase's error-handling convention
 
@@ -60,18 +60,35 @@ or otherwise important enough to justify a distinct type.
 
 Avoid one-off wrapper types whose ceremony exceeds their safety benefit.
 
-### Reserve panics for bugs
+### Reserve panics for whole-program bugs
 
-For every failure, ask whether it could possibly originate from the filesystem,
-network, user, another process, or another external input or system. Represent
-such a failure as an error even when it is rare or inconvenient to handle.
+Classify failures at the whole-program level. Represent a condition as an error
+when it can arise from the filesystem, network, user, another process, or
+another external input or system in a correct whole program after every
+applicable caller obligation has been satisfied. Panic when reaching a condition
+necessarily means that in-process code failed to uphold an obligation or
+invariant, unless a more restrictive established policy applies. Except for an
+unavoidable panic originating in third-party code as described below, do not
+panic for any other condition.
 
-When a condition could reflect nothing but a bug in code executing in the same
-process, panic unless a more restrictive established policy applies. Except for
-an unavoidable panic originating in third-party code as described below, do not
-panic for any other condition. Treat every panic as an assertion failure,
-whether it is expressed with `assert!`, `panic!`, `expect`, `unwrap`, indexing,
-or another panicking operation.
+A function may therefore have a caller-facing panic condition: one that a
+caller permitted by its effective visibility can trigger while satisfying the
+item's other documented requirements. Document each such condition in
+`# Panics`. Every caller must either establish that the condition cannot occur
+or carry the corresponding condition into its own `# Panics` contract. Do not
+invent a caller obligation merely to convert a recoverable failure into a panic.
+This remains true when the offending value originally came from external input:
+passing it without validation is the caller's bug. This skill does not require
+per-call-site comments spelling out this argument.
+
+Do not document a panic when every operation available to callers at the item's
+effective visibility preserves a more-private invariant and the panic can occur
+only because implementation code responsible for that invariant violates it.
+That is an internal bug check rather than a caller-facing panic condition.
+
+Treat every panic as an assertion failure, whether it is expressed with
+`assert!`, `panic!`, `expect`, `unwrap`, indexing, or another panicking
+operation.
 
 Follow a more restrictive established panic policy when the relevant codebase
 has one.
@@ -244,10 +261,12 @@ When writing or revising Rust error handling:
     precedent or show mixed practice.
 2.  Identify whether invalid inputs can be made unrepresentable without
     introducing disproportionate wrapper-type ceremony.
-3.  Classify each failure as potentially external or necessarily a bug. Return
-    an error for every potentially external failure unless it is a qualifying
-    unavoidable third-party panic; panic for a bug unless a more restrictive
-    established policy applies.
+3.  Classify each failure at the whole-program level. Return an error when the
+    failure can arise from external state or input after all caller obligations
+    have been satisfied, unless it is a qualifying unavoidable third-party
+    panic. Panic when the failure necessarily means that in-process code broke
+    an obligation or invariant, unless a more restrictive established policy
+    applies.
 4.  For each trait implementation, compare the panic conditions reachable while
     it and its dependencies satisfy their contracts with the trait's documented
     contract. When claiming the third-party-trait exception, establish direct
@@ -256,8 +275,10 @@ When writing or revising Rust error handling:
 5.  For each known third-party panic, inspect supported public APIs, error
     channels, versions, features, and targets for a reasonable alternative. Do
     not count `catch_unwind` as avoiding the panic.
-6.  At each panic site, identify either the invariant being asserted or the
-    qualifying third-party panic being propagated. Replace every
+6.  At each panic site and call to a panicking API, identify the caller-facing
+    condition, more-private invariant, or qualifying third-party panic involved.
+    Establish every callee panic condition through a check, type, or maintained
+    invariant, or carry it into the current item's panic contract. Replace every
     `Option::unwrap()` with an `expect` message explaining why the value should
     be `Some`.
 7.  For a panicking `Result`, use `expect` exactly when it adds information
@@ -265,8 +286,11 @@ When writing or revising Rust error handling:
     poisoned-mutex results rather than repeating that the mutex should not be
     poisoned. Never unwrap a recoverable third-party error under the
     third-party-panic exception.
-8.  Document every accepted third-party panic as a condition under which the API
-    may panic. Put a trait-specific exception on the implementation.
+8.  Document every caller-facing panic condition in `# Panics` unless the
+    current item establishes that it cannot occur. Omit internal bug checks that
+    depend on a more-private invariant violation. Document every accepted
+    third-party panic as a condition under which the API may panic, and put a
+    trait-specific exception on the implementation.
 9.  At a library boundary, expose only the structured distinctions and data that
     callers can plausibly use to determine the error's disposition.
 10. Preserve an existing path through an error type or reporter when it can
@@ -279,8 +303,10 @@ When writing or revising Rust error handling:
     error structure or `Display` text to it.
 12. Audit every wrapper and source link so each `Display` adds context without
     repeating its source.
-13. Re-read the affected call paths and public signatures to catch recoverable
-    failures converted to panics, unsupported trait panic conditions, avoidable
+13. Re-read the affected call paths and public signatures to catch external
+    failures converted to panics after caller obligations are satisfied, panic
+    conditions neither established nor carried upward, private bug checks
+    exposed as caller contracts, unsupported trait panic conditions, avoidable
     third-party panics, useless error variants, redundant panic messages, and
     duplicated source text.
 
@@ -295,10 +321,16 @@ Then report a finding when code:
   stable, domain-significant, reused across call sites, or otherwise important
   enough to justify a distinct type;
 - adds a one-off validated wrapper whose ceremony exceeds its safety benefit;
-- panics for a failure that could have originated from external state or input
-  without satisfying the unavoidable-third-party exception;
+- panics for a failure that can arise from external state or input after every
+  applicable caller obligation has been satisfied, without satisfying the
+  unavoidable-third-party exception;
 - returns an error for a condition that can only indicate a bug, unless a more
   restrictive local panic policy applies;
+- omits a caller-facing panic condition from `# Panics`, including a callee's
+  condition that the current item neither establishes as impossible nor carries
+  into its own contract;
+- documents as caller-facing a panic that can occur only after more-private
+  implementation code violates an invariant it is responsible for maintaining;
 - introduces a panic in a trait implementation, reachable while it and its
   dependencies satisfy their contracts, that the trait's documented contract
   does not permit, without satisfying the third-party-trait exception;
@@ -335,8 +367,9 @@ Then report a finding when code:
 - relies on unstable `Display` output where `Debug` is the appropriate place for
   implementation detail.
 
-Do not report a finding merely because code panics for a genuine bug under the
-applicable panic policy, propagates a documented and genuinely unavoidable
+Do not report a finding merely because code panics for a genuine whole-program
+bug under the applicable panic policy when every caller-facing panic condition
+is documented as required, propagates a documented and genuinely unavoidable
 third-party panic under the rules above, uses `Result::unwrap()` when the `Err`
 already provides all useful context, implements `Display` and `Error` manually
 for greater clarity, leaves a one-off invariant without a wrapper type, or
