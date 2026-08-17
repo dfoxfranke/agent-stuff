@@ -1,0 +1,3 @@
+interface:
+  display_name: "Logging (Fallback)"
+  short_description: "Fallback: Write and review operational logging"

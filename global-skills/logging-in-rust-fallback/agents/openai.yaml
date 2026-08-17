@@ -1,3 +1,0 @@
-interface:
-  display_name: "Logging in Rust (Fallback)"
-  short_description: "Fallback: Write and review useful Rust logging events"
