@@ -40,6 +40,13 @@ in MIRI.
 The refactoring-for-testability that $test-quality describes as presumptively
 authorized is, in fact, authorized as part of this task.
 
+Every change to production code (that is, not tests and not documentation) must
+be justified as either a bugfix or as internal refactoring. You must not alter
+any behavioral that is both intentional and externally-observable. Improvements
+to developer-facing diagnostic strings, such as Rust panic messages, are
+allowed. You can regard those as internal refactoring even though, strictly
+speaking, a user might see them.
+
 Report residual findings in an untracked Markdown file at the root of the repo.
 Name it `FINDINGS.md` unless a file by that name already exists.
 
@@ -65,3 +72,6 @@ You are finished when:
    - Fail because they expose genuine bugs for which there is no simple, clean,
      and low-risk fix; the reason for this is documented as a finding at
      highest priority.
+
+6. A diff review has concluded that all intentional, externally-observable
+   production code behavior is preserved.
