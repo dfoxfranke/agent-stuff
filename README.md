@@ -29,6 +29,3 @@ The repository-only `work-in-vendored-forks` skill preserves upstream
 conventions when a task changes third-party source maintained as a downstream
 fork. It does not apply merely because first-party code interfaces with a
 third-party dependency.
-
-<STYLE.md> is a draft providing corresponding human-facing conventions.
-It's currently still AI slop and not yet recommended for use.

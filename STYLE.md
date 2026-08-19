@@ -1,229 +1,321 @@
 # Style guide
 
-This guide states the project’s conventions for API documentation, Rust error
-handling and logging, and human-readable text in source and documentation. It
-is addressed to contributors: use the principles here to communicate the
-program’s intent clearly, preserve useful abstraction boundaries, and avoid
-turning incidental behavior into permanent promises.
+This guide is a simplified gloss on requirements covered in much greater detail
+by AI agent skills installed at `.agents/skills`. The skills are a tedious read,
+and human contributors aren't expected to go through them all. This version is
+much shorter because it assumes you will apply common sense rather than trying
+to explicitly articulate every detail, edge case, and exception. Read this guide
+before you write code, and then afterward, ask for a code review from an AI that
+has the skills loaded.
 
-## Documentation is a contract
+## Documentation
+
+**Documentation is a contract.**
+
+Every function and every type declaration — even small, private helpers —
+**must** be accompanied by API documentation specifying its contract and
+invariants. Callers may rely upon precisely what is specified by the
+documentation, and nothing beyond that.
 
 Documentation should add meaning that is not already clear from an item’s name
 or declaration. Explain the semantics, constraints, effects, invariants, and
-relationships that readers need in order to use the API correctly. A short
-comment that says only what the signature already says is usually noise; a
-modest but useful statement is better than invented detail.
+relationships that readers need in order to use the API correctly. Don't repeat
+information that's already there in the type signature.
 
 Treat every behavioral claim as a promise the implementation is intended to
 preserve. Describe supported, caller-observable behavior, not incidental
-behavior that merely happens to be visible today. Leave intentionally
-unspecified details unmentioned instead of adding disclaimers about them.
-Implementation details belong in API documentation only when they provide a
-genuinely useful design explanation or an important performance property.
+behavior that merely happens to be visible today. Implementation details belong
+in API documentation only when they provide a genuinely useful design
+explanation or an important performance property.
 
-Keep a coherent abstraction level when an implementation delegates to another
-component. Either describe this API’s own observable behavior, or make its
-interaction with the dependency part of the interface. Do not expose the
-interaction and then restate the dependency’s contract as a second guarantee.
-Likewise, describe errors, exceptions, and other failures in terms of the
-current item’s boundary rather than repeating general behavior documented by an
-error type or dependency.
+When a function calls out to a dependency for some of its functionality, its API
+documentation should not make claims about how the dependency behaves. You have
+two models to choose from:
 
-Prefer plain language and established terms that the intended reader can
-reasonably know. Introduce a new term only when it improves precision, and
-define it where readers first need it.
+1. Specify your function's observable behavior directly, leaving the dependency
+   as a hidden implementation detail, or
+2. Make the manner of interaction with the dependency an explicit part of your
+   function's contract. Specify what it passes to the dependency and how it
+   handles what's returned, but not what happens inside the dependency.
 
-When a test has explanatory prose, state the property it establishes directly:
-“If the username is empty, the handler returns 400,” not “Verifies that empty
-usernames are rejected.” Do not repeat the proposition when the test
-declaration already expresses it clearly.
+When in doubt, pick model 1. *Always* pick model 1 when specifying conditions
+that can lead to an exception/panic/crash or undefined behavior; don't write
+things to the effect of "it panics if the dependency panics".
 
-## Rust API documentation
+When code relies on the behavior of third-party dependencies that aren't
+documented up to our standards, it may be necessary to make some subjective
+inferences about what the author really had in mind regarding its intended
+contract. State these inferences near the call site which depends on them.
 
-Document private Rust items of the kinds that `missing_docs` would cover if the
-items were public. These comments are still contracts within their visibility
-boundary, so they should contribute supported semantic information rather than
-expand an identifier into a sentence. `impl` blocks and other item kinds that
-the lint does not cover do not need comments merely for completeness.
+Exception/panic conditions should have a dedicated section in API documentation.
+In languages which support ad-hoc polymorphism through some sort of interface
+definition (Rust traits, Go interfaces, Haskell typeclasses, etc.),
+implementations should not except/panic under any conditions outside of those
+specified by the interface contract. Bug-check conditions which assert an
+internal invariant that it should be impossible for outside callers to violate
+don't count and shouldn't be mentioned in API documentation.
 
-Every unsafe function and unsafe trait has a `# Safety` section. State the
-conditions that callers or implementors of that item must uphold; do not
-outsource its safety contract to a dependency.
+## Tests
 
-A function or method has a `# Panics` section when a caller permitted by its
-visibility can trigger a panic while honoring its contract and, for an unsafe
-item, its safety requirements. Describe the caller-visible condition, not the
-internal operation that panics. Assertions that can fail only after private
-code breaks its own invariant are bug checks rather than public panic
-conditions. Panics originating solely in caller-supplied code, process aborts,
-memory exhaustion, and stack overflow are also outside this section. Test
-bodies do not receive `# Panics` sections, although test helpers follow the
-ordinary rule.
+**Tests verify contracts.**
 
-For every function or method returning `Result`, document the error conditions
-specific to that item. A single simple condition may fit in the main
-description; multiple cases or a substantial explanation belong in an
-`# Errors` section. General semantics of the error type belong on the type
-itself.
+The purpose of a unit test is to verify the behavior promised by the tested
+function's contract as thoroughly as practical — but nothing beyond that. A test
+which asserts things beyond what is stating in the contract should be considered
+broken, even if those assertions happen to be true of the function's present
+implementation.
 
-Documentation records a panic contract; it does not expand one. A trait
-implementation must still respect the trait’s documented panic behavior.
-Where a genuinely unavoidable panic from correctly used third-party code is
-accepted, describe the condition at the affected API boundary as one under
-which the item “may panic.”
+Every test should include a string or doc comment which affirmatively states the
+proposition that the test is checking. Omit modalities such as "verifies that…".
 
-## Rust errors and panics
+Sometimes practicality dictates that a function's internal contract should be
+stronger than its public one. For example, a function whose purpose is to print
+a colored diff should probably not commit in its public documentation to what
+shade of green will be used for added lines. Nonetheless, its private
+documentation should specify a specific RGB value so that tests can check for
+that rather than have to invent some "what qualifies as green?" criteria. Put
+private documentation of this nature with the function, not with the test.
 
-Make invalid states difficult to construct. A validated type is worthwhile
-when it captures an efficiently checked invariant that is stable,
-domain-significant, or reused widely enough to justify the added type and API
-surface. Do not introduce a wrapper whose ceremony outweighs its safety value.
+It's okay for tests to make reasonable assumptions about their execution
+environment and to fail if those assumptions are violated. For example, a test
+which creates some temporary files in a standard system location and then
+represents their path as a string is allowed to fail someone has set `$TMPDIR`
+to a path containing invalid Unicode. When it is non-obvious that an assumption
+is required, document it with the test.
 
-Failures that may originate in user input, the filesystem, the network,
-another process, or another external system are recoverable errors. Panics are
-for programmer bugs and broken in-process invariants. Trait implementations
-remain subject to their trait’s panic contract. Propagating an externally
-triggered panic from third-party code is a narrow exception: the dependency
-must be used according to its contract, and there must be no reasonable
-fallible way to preserve the required behavior.
+Property tests are usually preferable to tests which just check a few
+hand-chosen inputs. Seek to factor code in ways that make it more amenable to
+property testing.
 
-Panic messages should explain the invariant being asserted. Do not use
-`Option::unwrap`; when `None` necessarily means a bug, use `expect` to explain
-why the option must be `Some`. For `Result`, use `expect` only when its message
-adds invariant context that the error itself does not carry; otherwise
-`unwrap` avoids a redundant message. Either is appropriate only after
-establishing that `Err` necessarily indicates a bug.
+In languages which make a formal distinction between unit and integration tests,
+keep unit tests observationally pure. Any test which touches the filesystem,
+binds sockets, or spawns processes should be an integration test.
 
-Library errors should expose the finest distinctions and data that callers can
-plausibly use, without committing to incidental implementation details. Prefer
-`thiserror` for new structured errors. Use `anyhow` for application failures
-that will be reported rather than inspected, and prefer `anyhow::Error` at
-open-ended plugin, middleware, or extension boundaries. Preserve a suitable
-existing error representation instead of changing it merely to adopt these
-libraries. Unstable diagnostic detail belongs in `Debug`, not in public error
-structure or stable display text.
+Correctness properties whose evaluation requires human judgement should be
+checked with acceptance tests. Provide the tester with detailed, repeatable
+instructions on what to verify and how. Even if the acceptance criteria are
+vague (e.g. "output looks correctly formatted"), the procedure for getting to
+where they can be evaluated should not be.
 
-Preserve error source chains. Each outer error’s `Display` text should add
-context without repeating the text produced by its source. An error should not
-both interpolate a source’s message and expose that same value through
-`source()`; reporters commonly traverse the chain themselves.
+## Error handling
 
-## Operational logging in Rust
+Libraries should signal errors through structured error types, but remember that
+every exposed detail is an API commitment. Choose the finest detail level
+plausibly useful to calling code when deciding how to handle the error, without
+exposing implementation details that would be burdensome to preserve.
 
-Use `tracing` for Rust logging and instrumentation. Choose levels by the
-event’s meaning at the layer that emits it:
+When the same error type is used by multiple functions, common semantics should
+belong to the type documentation, not the function documentation. The function
+documentation's discussion of error conditions should remain specific to the
+behavior of that function and avoid rehashing what the type already documents.
 
-- `error` means an intended operation failed because something went wrong.
-- `warn` means behavior was abnormal, may have produced a wrong result, or
-  warrants attention before it becomes an error.
-- `info` marks a significant, normal state transition.
-- `debug` marks an internal transition that answers a concrete diagnostic
-  question.
-- `trace` observes control flow or execution state without a transition.
+### Rust-specific considerations for error handling
 
-Higher-level events should have an externally meaningful consequence. Keep
-control-flow tracing temporary to an active investigation; if the same class
-of problem is likely to recur, retain a focused state-transition event at
-`debug` instead.
+Never use `Option::unwrap()`. When `None` would necessarily indicate a bug, use
+`Option::expect()` and state why the value should be `Some`. For `Result`, use
+`expect()` instead of `unwrap()` if and only if the message can add informative
+context that the `Err` does not already carry. Otherwise use `unwrap()` rather
+than adding a redundant message.
 
-Record an abnormal condition once, at the layer that decides its disposition.
-Code that returns or propagates an error has not disposed of it and should not
-also emit an `info`, `warn`, or `error` event for the same condition. Reusable
-libraries generally lack the application context to own those levels and
-should leave them to the handling boundary, though purposeful `debug` or
-`trace` context may still be useful. Do not duplicate a panic with a log
-immediately before it.
+When creating a new structured error, normally use `thiserror` to derive
+`Display` and `Error` implementations, but implement them manually when it's
+necessary for providing a clearer error message.
 
-Put every dynamic, semantically meaningful fact in a structured field; the
-human-readable message may repeat those facts for readability. Use the same,
-minimally qualified field key for the same concept, and represent independent
-dimensions as separate fields. Give `info`, `warn`, and `error` events stable
-names when they will be queried, aggregated, or alerted on centrally.
-Otherwise leave events unnamed; `debug` and `trace` events remain unnamed in
-either case.
+Do not make an error's `Display` implementation repeat text emitted by its
+source's `Display` implementation. refer an outer message that adds context
+while exposing the underlying error through `source()`:
 
-Logging and user feedback serve different audiences. Neither substitutes for
-the other, although both may describe the same condition when each has an
-independent purpose. Input rejected completely by the user interface without
-attempting an operation usually needs no log event.
+``` rust
+#[derive(Debug, thiserror::Error)]
+#[error("failed to load {path}")]
+struct LoadError {
+    path: std::path::PathBuf,
+    #[source]
+    reason: std::io::Error,
+}
+```
 
-Classify authentication from the emitter’s perspective. A client whose
-requested operation is blocked may own an authentication error. A server that
-correctly rejects invalid credentials has behaved normally, so record the
-rejection at `debug`, `info`, or not at all—not at `warn` or `error`. A failure
-of the authentication system is an operational failure, while a successful
-server authentication should be at least as prominent as a rejected one.
+Interpolating the reason without exposing it as a source is dispreferred but
+acceptable:
 
-Keep production volume bounded. Before adding per-request, per-item, or
-per-retry events, consider worst-case and attacker-controlled traffic. Facts
-that matter chiefly in aggregate belong in metrics or periodic summaries;
-individual diagnostic events may remain at levels normally disabled in
-production.
+``` rust
+#[derive(Debug, thiserror::Error)]
+#[error("failed to load {path}: {reason}")]
+struct LoadError {
+    path: std::path::PathBuf,
+    reason: std::io::Error,
+}
+```
 
-## Unicode and human-readable text
+Never both interpolate the reason and expose the same value as a source:
 
-Use literal Unicode only when the source format and every supported tool that
-reads or rewrites it preserve a defined Unicode encoding. Embedded
-documentation inherits the encoding constraints of its outer source language.
-Rust and CommonMark, for example, define Unicode source text; C, C++, and shell
-source require an explicit end-to-end encoding guarantee. Existing non-ASCII
-text, editor defaults, or one successful compiler invocation are not by
-themselves such a guarantee.
+``` rust
+#[derive(Debug, thiserror::Error)]
+#[error("failed to load {path}: {reason}")]
+struct LoadError {
+    path: std::path::PathBuf,
+    #[source]
+    reason: std::io::Error,
+}
+```
 
-When literal Unicode is unsafe, use an escape only in documentation syntax that
-actually renders it at that location. Otherwise use conventional ASCII or
-rewrite the prose. Source safety establishes only that characters survive the
-toolchain; grammar, semantics, typography, normalization, and security remain
-separate concerns.
+Use `anyhow` for non-structured application errors when the application will
+report them rather than inspect them programmatically. For plugin, middleware,
+and extension APIs that require a generic open-ended error type, prefer
+`anyhow::Error` over `Box<dyn Error>` or a similar erased trait object.
 
-In new or substantively revised prose, use Unicode punctuation when it is safe
-and expresses the intended meaning. Distinguish a hyphen from a minus sign, en
-dash, or em dash, and prose quotation marks and apostrophes from machine
-delimiters. In monospaced output, ordinarily space an em dash as `word — word`.
-Do not normalize unrelated passages merely for typographic consistency.
+## Logging
 
-Exact and machine-consumed text takes precedence over typography. Preserve
-code, identifiers, commands, paths, URLs, regular expressions, protocol values,
-directives, serialized data, fixtures, and quoted source text rather than
-substituting typographic lookalikes.
+Log at five levels:
 
-### People’s names
+- `error`: an intended operation failed because something went wrong.
+- `warn`: an operation behaved abnormally, may have produced an incorrect
+  result, or created a condition that warrants attention before it becomes an
+  error.
+- `info`: a significant but normal event occurred.
+- `debug`: an event of some kind occurred, but not one that is typically of any
+  operational significance.
+- `trace`: reports on the current state of execution, not necessarily
+  representing that anything at all "happened".
 
-Represent each person’s name faithfully, including genuine letters,
-diacritics, and orthographic marks. Prefer the person’s own spelling; when it
-is unknown, retain the form supplied by the person, a cited source, or existing
-documentation. Do not guess, expand initials, strip marks to manufacture ASCII,
-or invent a transliteration. Preserve genuine letters such as `Æ`, but do not
-introduce decorative presentation ligatures such as `ﬁ`.
+Everything logged at `info` or higher needs to have some sort of observable
+consequence outside the process. `debug` still needs to represent some kind of
+state transition, but it could be a purely internal one, such as a message being
+written to a channel. `trace` could simply be a dump of a function's local
+variables at some point in its execution.
 
-For a name normally written in a non-Latin script, introduce the first
-substantive prose mention as `preferred-script form (Latin-script form)`, then
-use the Latin-script form consistently. Prefer the person’s own Latin-script
-spelling; otherwise use one established transliteration. Bylines, citation
-metadata, identifiers, paths, URLs, and similar structured text are exact data,
-not prose to normalize.
+If you're working with a logging framework that doesn't have a `trace` level,
+then log `trace` events as `debug`, but retain the distinction mentally.
 
-If the source path cannot carry the faithful literal spelling, use a rendering
-escape where the documentation format supports one, or use a known preferred
-or established safe form. Do not manufacture a lossy substitute.
+`debug` events should be added sparingly, only when there is good reason to
+anticipate that they will be eventually be useful. `trace` events should never
+be added proactively: wait until there is a concrete problem that you are using
+them to investigate.
 
-## Mathematics in comments
+Think of `trace` logging as a more civilized form of printf-debugging. Unlike the
+cruder form, it is acceptable to commit, but still should not be a permanent
+feature of the codebase. Once you are confident that a function or module works
+correctly and have verified this with solid test coverage, you should remove its
+`trace`-level logging. After removing it, consider whether there is some single
+`debug` event, meeting the "something happened" threshold, which would have
+immediately pointed to the problem that you were using the `trace` events to
+discover if it had been present. If such a `debug` event is likely to be useful
+again in the future, you should add it.
 
-Write formulas so their mathematical meaning and relationship to the code are
-unambiguous. Preserve grouping, operator meanings, and symbol distinctions, and
-either retain code identifiers or explain their correspondence to conventional
-mathematical variables.
+Functions must either dispose locally of abnormal conditions or propagate them
+to the caller — never both. An error return (or a thrown exception, in languages
+where that's an idiomatic substitute for error returns) means that it's up to
+the caller to decide the disposition of the error. Logging an error *is* its
+disposition, or at least part of it. However, logging at `debug` or `trace`
+isn't considered dispositive: it's okay to log at one of these levels and also
+return an error.
 
-In documentation processed by a renderer with native mathematical markup, use
-that markup. In other Unicode-safe source, use UnicodeMath, including actual
-mathematical characters and its structural `/`, `_`, and `^` notation. Use
-parentheses wherever the linear form could obscure grouping. Renderer-specific
-markup belongs only in comments that the renderer actually parses.
+Not every error means something has actually gone wrong; don't log above `debug`
+if you don't have enough context to be sure. It would be very bad, for example,
+for a library to log every connection failure as an error if the application
+using it turned out to be a port scanner.
 
-Where literal Unicode is unsafe, conventional ASCII is appropriate for simple
-arithmetic: spell multiplication explicitly with `*` and make grouping clear
-with parentheses. Do not invent lossy ASCII approximations for sums, roots,
-integrals, matrices, decorated symbols, or similar structure. Use plain TeX for
-such formulas, with `$...$` inline and `\[...\]` for display math unless the
-documentation format defines its own notation. Label literal TeX when readers
-might otherwise mistake it for rendered output.
+A client which fails at authenticating to a server will in most circumstances
+consider that an error. A server failing to authenticate a client is not an
+error: if a server receives a misauthenticated request and rejects it, then the
+server is working exactly as designed and nothing has gone wrong. The event is
+usually not even noteworthy to the server administrator: password-guessers and
+similar pest traffic on the public Internet are routine background noise.
+Application context may inform whether it is more appropriate for a server to
+log authentication failures as `info` or `debug`, but `error` and `warn` are
+always inappropriate.
+
+Accepted authentications are the dangerous kind, and (on the server) should be
+logged at least at the same severity as rejected ones. Routine logins should be
+`info`, but consider using `warn` for administrator accounts that should not be
+logging in very often.
+
+For high-volume servers where logging can pose a performance concern, the
+asymptotics of log volume are more interesting than the coefficients. It
+probably doesn't matter whether a network request or some other IO event
+produces one log line or five: the interesting threshold is from zero to one.
+Before adding a log event, think about how it will affect log volume during a
+DDoS attack. If the event you are recording is something only interesting in
+aggregate rather than individually significant, then only record it in
+aggregate. You could also continue to log the individual events at `debug`
+level, anticipating that debug logging in production will be turned off, while
+logging the aggregate data at `info`.
+
+## Unicode
+
+In languages which cleanly support Unicode, put it to use in strings,
+documentation, and comments. "Clean support" means that the language either
+specifies a Unicode encoding for its source files, or has its lexical syntax
+defined terms of Unicode characters. This includes Rust, JavaScript/TypeScript,
+Go, Python 3, Ruby 2+, Java, C#, Kotlin, Swift, Dart, Haskell, and Scala. It
+excludes C, C++, Objective C, PHP, R, POSIX shell, and Lua.
+
+Good uses for Unicode include:
+
+* Personal names
+* Mathematical formulas
+* General punctuation such as dashes, ellipses, qutotation marks, etc.
+
+For personal names that use a non-Latin script, include both the preferred form
+and a transliteration with the name's first substantive use in a file or document,
+and use the transliterated form thereafter.
+
+For mathematical formulas, use [UnicodeMath](https://www.unicode.org/notes/tn28/).
+
+## Unsafe Rust
+
+It is appropriate to write unsafe Rust:
+
+1. When it is unavoidable, such as at FFI boundaries and in low-level systems
+   code such as kernel, allocators, and language runtimes.
+
+2. In performance-critical code, but only after its benefit has been
+   quantitatively demonstrated through profiling and benchmarks.
+
+Every unsafe function and unsafe trait must have a `# Safety` section in its API
+documentation. For an unsafe function, state the requirements that every caller
+must uphold. For an unsafe trait, state the requirements that every
+implementation must uphold.
+
+Place a `SAFETY:` comment immediately above every unsafe block and every unsafe
+impl.
+
+For an unsafe block, the comment must:
+
+1.  State facts that are true of the surrounding code.
+2.  Cover the safety requirements of every unsafe function or operation used in
+    the block.
+3.  Be logically sufficient to show that those requirements hold.
+
+A shared argument may cover multiple unsafe operations only when it is
+sufficient for all of them. Do not substitute a vague assurance, a description
+of what the block does, or a restatement of an operation's safety contract for
+the facts that establish the contract.
+
+For example, avoid:
+
+``` rust
+// SAFETY: The unchecked access is safe.
+unsafe { slice.get_unchecked(index) }
+```
+
+Prefer a locally established fact that discharges the actual requirement:
+
+``` rust
+// SAFETY: The guard above established that `index < slice.len()`.
+unsafe { slice.get_unchecked(index) }
+```
+
+When the enclosing function has a safe interface, every fact in the `SAFETY:`
+argument must hold unconditionally, even when interface is misused by the
+caller.
+
+When the enclosing function is unsafe, the argument may assume that its caller
+has satisfied the function's documented `# Safety` contract. Connect any such
+assumption to that contract explicitly, and do not rely on an undocumented
+caller obligation.
+
+For an unsafe impl, state why the implementing type and implementation uphold
+the unsafe trait's contract. The comment must establish that contract for every
+use permitted by the safe interfaces involved, not merely assert that the impl
+is safe or that its method bodies use unsafe operations correctly.
