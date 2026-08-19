@@ -6,39 +6,17 @@ description: Draft, revise, and audit Git commit messages and the structure of a
 # Write Commit Messages
 
 Use this skill to write exact Git commit messages and to evaluate whether a
-branch is organized into reviewable commits. AI-assisted commit-message drafting
-is within scope; pull-request communication is not. This skill does not draft
-pull-request summaries, descriptions, cover letters, issue text, or review
-replies, and it does not submit pull requests. References below to submission or
-review concern the branch and its commit history; a human authors and submits
-the pull request separately.
+branch is organized into reviewable commits. Pull-request communication is out
+of scope: a human authors and submits it separately.
 
 ## Governing model
 
-A pull request and its commits describe the same change at different levels.
-
-- The human-authored pull request explains the whole change as a unit of review
-  and delivery. It emphasizes externally observable behavior, compatibility,
-  overall human motivation, issue references, benchmark results, and validation
-  performed by the contributor.
-- Each commit explains one durable implementation step. It emphasizes the exact
-  code-level change, the technical problem or invariant involved, and why that
-  implementation was chosen.
-
-Even when a pull request contains one commit, its summary and the commit message
-are not interchangeable. Both say what changed, but for different readers and
-at different levels of abstraction.
-
-A useful test is:
-
-- Pull request: Why should the project merge this overall change, and what will
-  users or API consumers observe?
-- Commit: What does this patch change in the implementation, and why is this the
-  right technical change?
-
-Commit messages are repository history. They must remain useful in `git log`,
-`git blame`, `git bisect`, a downstream fork, or a source archive after the
-forge conversation is unavailable.
+Treat each commit as one durable implementation step: state what its patch
+changes, the technical problem or invariant involved, and any non-obvious
+reason for the implementation. Keep the message useful after forge discussion
+is unavailable. Leave whole-change motivation, externally observable results,
+issue references, benchmarks, and validation reports to the human-authored pull
+request.
 
 ## Non-negotiable rules
 
@@ -52,8 +30,8 @@ includes:
 - links to issues, pull requests, review comments, or project-board items;
 - phrases such as “requested in issue 123” or “address review feedback.”
 
-The commit must contain any technical context it needs instead of delegating its
-meaning to a forge artifact.
+Include the necessary technical context instead of delegating meaning to a
+forge artifact.
 
 A project-standard reference to a *commit*, such as
 `Fixes: <stable-hash> ("subject")`, is not an issue reference. It is permitted
@@ -91,15 +69,13 @@ A commit may describe test code that the patch adds and the behavior that code
 covers. It must not turn the commit body into a report of tests the contributor
 ran.
 
-A commit may explain an algorithmic property or technical constraint, such as
-avoiding an extra scan or maintaining constant-time lookup. Put measured
-performance figures in the human-authored pull request, not in the commit.
+A commit may explain an algorithmic property or technical constraint, but not
+measured performance figures.
 
 ### Record technical reasoning, not development chronology
 
 Explain root causes, invariants, constraints, tradeoffs, and non-obvious design
-choices. Do not narrate the order in which the author discovered or corrected
-things. Avoid messages such as:
+choices. Do not narrate development chronology with messages such as:
 
 - “fix typo” when the typo was introduced earlier in the same series;
 - “oops” or “fix previous commit”;
@@ -118,8 +94,8 @@ documentation, or explicit human-provided context. Do not manufacture a root
 cause, compatibility claim, performance claim, or design rationale merely to
 make the message sound complete.
 
-When the change is obvious and no non-obvious rationale is supported, use a
-strong subject and omit the body rather than inventing one.
+If no non-obvious rationale is supported, omit the body rather than inventing
+one.
 
 ## Patch-set lifecycle
 
@@ -223,28 +199,8 @@ Before drafting, inspect the repository's contribution guide, commit lint
 configuration, existing trailers, and recent protected-branch history. Follow a
 clear local convention for component prefixes, capitalization, line wrapping,
 and trailer order. Do not copy weak recent messages merely because they exist.
-
-Useful context commands include:
-
-```sh
-git status --short
-git log -n 30 --format='%h %s'
-git diff --cached --stat
-git diff --cached
-```
-
-For an existing series, identify the intended protected base and inspect commits
-in order:
-
-```sh
-git log --reverse --format='%H%n%s%n%b%n---' <base>..HEAD
-git diff --stat <base>...HEAD
-git show --stat --summary <commit>
-git show --find-renames <commit>^!
-```
-
-Do not infer the base solely from a branch name when that choice affects the
-series analysis.
+For a series, identify the protected base rather than inferring it solely from a
+branch name.
 
 ### 2. Establish the review phase
 
@@ -259,120 +215,50 @@ silently recommend history rewriting.
 
 ### 3. Inspect the full patch, not just filenames
 
-Read the actual diff and relevant surrounding code. Identify:
-
-- the state before the patch;
-- the exact state after the patch;
-- the technical limitation, defect, or invariant involved;
-- the implementation choice made;
-- any non-obvious constraints or alternatives;
-- tests or documentation added as part of the patch;
-- facts supplied by the human that belong only in the pull request.
-
-For a series, inspect both each individual commit and the cumulative diff. A
-message that makes sense for the final tree may be wrong for the intermediate
-commit that actually carries it.
+Read the actual diff and relevant surrounding code. Establish the before and
+after states, the technical limitation or invariant, the implementation choice,
+and any supported non-obvious constraints. For a series, inspect both each
+commit and the cumulative diff; a message for the final tree may be wrong for
+the intermediate commit that carries it.
 
 ### 4. Check the commit boundaries
 
-For every commit, answer:
-
-1. What single logical step does this commit perform?
-2. Why is that step separate from adjacent commits?
-3. Does its diff match its stated purpose without unrelated changes?
-4. Does the repository still build at this commit?
-5. Does this commit introduce a regression or a new test failure?
-6. If it adds an intentionally failing regression test, does that test expose a
-   bug already present on the protected base branch and fail for the intended
-   reason?
-7. In a bug-fix series, does the regression-test commit precede the fix so the
-   same test can be observed failing before the fix and passing afterward?
-8. Does it rely on a later commit to repair a defect it introduces?
-9. Would folding or splitting make review materially clearer?
-
-Do not infer intermediate integrity merely because the final `HEAD` builds and
-passes its tests. When the repository and available tooling permit it, validate
-the build and relevant tests at each commit in the series. An intentionally
-failing regression-test commit is the only exception to the rule against new
-test failures.
+Check that each diff is one logical step without unrelated changes and that its
+boundary aids review. When tooling permits, build and run relevant tests at
+each commit rather than inferring intermediate integrity from the final `HEAD`.
+Only a regression-test commit exposing a pre-existing bug may introduce a test
+failure, and it must fail for the intended reason.
 
 When boundaries are wrong, report the structural problem before polishing the
 messages. Good prose cannot make a poorly organized patch set coherent.
 
 ### 5. Separate commit facts from pull-request facts
 
-Use the following allocation rules:
-
-| Information | Commit message | Human-authored pull request |
-| --- | --- | --- |
-| Exact code-level change in this patch | Yes | At overview level |
-| Root cause or violated invariant | Yes | User-visible symptom at most |
-| Technical design choice or data-structure rationale | Yes | Only if needed for overview |
-| Externally observable behavior of the whole series | Only as needed to orient the patch | Yes, prominently |
-| Human or product motivation for a feature | No | Yes |
-| Issue, ticket, or pull-request reference | Never | Yes |
-| Benchmark results | No | Yes |
-| Manual testing and commands run | No | Yes |
-| Test code added by the patch | Yes, when useful | At validation level |
-| Compatibility, rollout, and reviewer notes | No | Yes |
-| `Assisted-by` and other required commit trailers | Yes | No substitute in the PR |
-
-If supplied context belongs only in the pull request, omit it from the commit
-message. The skill may report category labels such as “issue reference omitted”
-or “manual-test report omitted,” but it must not turn those facts into drafted
-pull-request prose.
+Put exact code changes, root causes, invariants, technical choices, relevant
+test code, and required trailers in commit messages. Omit issue references,
+human or product motivation, benchmarks, validation reports, compatibility,
+rollout, and reviewer notes. The skill may name omitted categories but must not
+draft their pull-request prose.
 
 ### 6. Draft the subject
 
-The subject should:
-
-- state the specific action performed by this commit;
-- name the affected component when that improves precision;
-- use the repository's established style, normally imperative mood;
-- be concise enough to scan in `git log`—aim for roughly 50–60 characters and
-  avoid exceeding about 72 unless local convention differs;
-- omit a trailing period;
-- avoid vague verbs and placeholders such as “update,” “changes,” “misc,” “fix
-  issue,” or “address feedback” unless followed by a precise object;
-- contain no issue reference and no unstable commit hash.
-
-Good subjects distinguish the implementation change:
-
-- `parser: handle empty predicate lists`
-- `scheduler: index ready tasks by priority`
-- `config: preserve unknown keys during migration`
-
-Weak subjects hide it:
-
-- `Fix #418`
-- `Update parser`
-- `Address review comments`
-- `Misc cleanup`
+State the specific action, name the component when useful, and follow the
+repository's style. Prefer imperative mood, roughly 50–60 characters, no
+trailing period, and no vague placeholders such as “update,” “misc,” or
+“address feedback.” Never include an issue reference or unstable hash.
 
 ### 7. Draft the body only when it adds durable value
 
-Separate the body from the subject with a blank line. Use paragraphs to explain
-what the diff cannot communicate reliably on its own.
-
-A strong body usually covers some subset of:
-
-1. the relevant prior state or technical limitation;
-2. the root cause, violated invariant, or source of ambiguity;
-3. the implementation change;
-4. why this approach is preferable to an obvious alternative;
-5. any consequence that a future maintainer must preserve.
-
-Do not mechanically restate each changed line. Do not repeat the subject in a
-longer sentence. Do not add a body merely to satisfy a template.
+After a blank line, explain only what the diff does not communicate reliably:
+the prior limitation or invariant, root cause, implementation choice, important
+tradeoff, or consequence to preserve. Do not restate the subject or diff.
 
 When referring to another patch in the same series, prefer a conceptual
 relationship such as “Now that the parser returns normalized predicates…” or
 name the other patch by subject. Avoid patch numbers when reordering would make
 them stale, and never use a rewritable hash.
 
-Wrap prose according to repository convention, commonly near 72 columns.
-Preserve code identifiers, commands, and literal output where wrapping would
-make them misleading.
+Wrap according to repository convention, commonly near 72 columns.
 
 ### 8. Add required trailers
 
@@ -408,50 +294,11 @@ unresolved placeholder as a final trailer.
 
 ### 9. Audit the result
 
-Before returning a message or series, verify:
-
-- the subject accurately describes this commit's diff;
-- the body explains only supported technical facts;
-- no issue, ticket, PR number, or forge URL appears anywhere;
-- every commit-hash reference points to a commit known to be on a protected
-  branch;
-- no benchmark result, manual-test report, rollout note, or human feature
-  motivation appears;
-- no development or review chronology remains in the final series;
-- required `Assisted-by` trailers are present and correctly spelled;
-- the initial or final series is logically ordered;
-- every commit keeps the build working;
-- no commit introduces a regression or new test failure, except for a
-  regression-test commit that exposes a bug already present on the protected
-  base branch;
-- in a bug-fix series, the regression test precedes the fix, fails for the
-  intended reason before the fix, and passes after the fix;
-- an in-review branch has not been told to rewrite reviewed commits;
-- a post-approval cleanup preserves the approved tree exactly.
+Verify the message against the rules above. For a series, also verify its order,
+intermediate integrity, review-phase handling, and—after approval—the approved
+tree identity.
 
 ## Message patterns
-
-### Bug-fix series with a regression test
-
-When a branch contributes both a regression test and its fix, order the series
-so the test comes first and the fix comes second. At the test commit, the build
-must succeed and the new test must fail because it exposes the bug already
-present on the protected base branch. After the fix commit, the same test must
-pass. Do not put the test after the fix merely to keep every intermediate test
-run green.
-
-A test commit can explain the pre-existing failure it captures:
-
-```text
-tests: reproduce empty-filter panic
-
-An explicitly empty filter reaches build_conjunction with no child predicates.
-Add a regression case for this path so the existing panic is visible before the
-implementation changes.
-```
-
-The following fix commit should explain the implementation failure and the
-invariant restored, as in the next pattern.
 
 ### Defect fix
 
@@ -468,46 +315,6 @@ element, so the empty form panics after normalization.
 Return the identity predicate for an empty list. Keeping the empty case in
 the builder preserves one invariant for every caller and avoids duplicated
 special cases.
-```
-
-The human-authored pull request may separately describe the observed failure,
-link the issue, and report manual validation. This skill must not draft that
-text.
-
-### Internal refactor
-
-Say which internal structure changes and why the new structure is easier or
-safer to maintain. Do not invent a user-facing effect.
-
-```text
-scheduler: index ready tasks by priority
-
-The ready queue stores tasks in insertion order and every selection scans the
-full queue to find the highest-priority runnable task. That also spreads the
-tie-breaking rule across the insertion and selection paths.
-
-Store ready tasks in a priority-keyed map and keep FIFO order within each key.
-This makes the ordering invariant explicit and centralizes task selection in
-one operation.
-```
-
-Measured benchmark results belong in the pull request, not in this message.
-
-### Preparatory commit in a series
-
-Explain the independent technical step and the invariant it establishes. Do not
-use an unstable hash for the later consumer.
-
-```text
-config: separate parsing from normalization
-
-The parser currently applies defaults while it is still decoding input. That
-prevents callers from inspecting which values were explicit and makes format
-migration depend on parser control flow.
-
-Return the decoded representation unchanged and move default application into
-a normalization pass. Later behavior changes can then operate on one explicit
-normalized form without duplicating decode logic.
 ```
 
 ### Trivial standalone correction
