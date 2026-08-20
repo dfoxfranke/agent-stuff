@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Commit Messages (Fallback)"
+  short_description: "Fallback: Draft durable Git commit messages"
+  default_prompt: "Use $write-commit-messages-fallback to draft an exact commit message for the current patch and flag structural problems."
